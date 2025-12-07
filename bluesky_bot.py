@@ -1,3 +1,19 @@
+ ça va # ----- IMPORT SESSION SI EXISTE -----
+    if os.path.exists(STATE_FILE + ".session"):
+        try:
+            client.import_session(STATE_FILE + ".session")
+            return client
+        except Exception as e:
+            print(f"[session] failed to import, relogin: {e}")
+
+    # ----- LOGIN NORMAL SI PAS DE SESSION -----
+    client.login(handle, app_pw)
+
+    # ----- SAUVEGARDE SESSION -----
+    try:
+        client.export_session(STATE_FILE + ".session")
+    except Exception as e:
+        print(f"[session] export failed: {e}")
 """
 Bluesky bot (Loufi’s Art / ArtLift) — Images + Reposts focused
 - Max 4 posts/day, no posts at night (23:00–07:00 Europe/Brussels)
@@ -329,7 +345,25 @@ def bsky_login() -> Client:
     if not handle or not app_pw:
         raise RuntimeError("Missing BSKY_HANDLE or BSKY_APP_PASSWORD in env")
     client = Client()
+    
+
+     # ----- IMPORT SESSION SI EXISTE -----
+    if os.path.exists(STATE_FILE + ".session"):
+        try:
+            client.import_session(STATE_FILE + ".session")
+            return client
+        except Exception as e:
+            print(f"[session] failed to import, relogin: {e}")
+
+    # ----- LOGIN NORMAL SI PAS DE SESSION -----
     client.login(handle, app_pw)
+
+    # ----- SAUVEGARDE SESSION -----
+    try:
+        client.export_session(STATE_FILE + ".session")
+    except Exception as e:
+        print(f"[session] export failed: {e}")
+
     return client
 
 
