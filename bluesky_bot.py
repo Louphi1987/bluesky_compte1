@@ -1,5 +1,5 @@
 """
-Bluesky bot (Loufi’s Art / ArtLift) — Images + Reposts focused
+Bluesky bot (Loufi’s Art / ArtLift) — Images + Reposts focused --
 - Max 4 posts/day, no posts at night (23:00–07:00 Europe/Brussels)
 - PRIORITY = images (GM/GN) + safe reposts
 - Weekly links: at most 1 plain URL every ≥7 days, **never at midday** (11:00–19:00)
