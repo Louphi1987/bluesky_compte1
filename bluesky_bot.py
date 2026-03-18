@@ -78,6 +78,7 @@ MAX_GMGN_LONG_PER_DAY = 0     # Désactivé
 
 # Weekly link rule
 WEEKLY_LINK_MIN_DAYS = 7
+BLOG_MIN_DAYS = 14
 ALLOW_LINK_MORNING_HOURS = (7, 11)    # [7,11)
 ALLOW_LINK_EVENING_HOURS = (19, 23)   # [19,23)
 
@@ -102,6 +103,13 @@ RANDOM_GN_EMOJIS = ["🌙", "✨", "⭐", "💤", "🌌", "🫶", "💫", "😴"
 LINK_POOLS = [
     SITE_URL,
     OPENSEA_URL,
+]
+
+BLOG_POST_TEXTS = [
+    "A small literary corner worth exploring 📖 https://blog.karamaz.eu/",
+    "If you enjoy books and reflections, you might like this ✨ https://blog.karamaz.eu/",
+    "A quiet place for readers 📚 https://blog.karamaz.eu/",
+    "Some thoughts on literature and life here: https://blog.karamaz.eu/",
 ]
 
 COMMENT_SHORT = [
@@ -129,7 +137,13 @@ class HourlyCounters:
 
 
 def _pertype_zero() -> Dict[str, int]:
-    return {"post_img_gmgn_short": 0, "post_gmgn_long": 0, "post_short_link": 0, "repost": 0}
+    return {
+        "post_img_gmgn_short": 0,
+        "post_gmgn_long": 0,
+        "post_short_link": 0,
+        "post_blog": 0,
+        "repost": 0
+    }
 
 
 def load_state() -> Dict[str, Any]:
@@ -145,7 +159,8 @@ def load_state() -> Dict[str, Any]:
                 state.setdefault("recent_reposts", [])
                 state.setdefault("pertype", _pertype_zero())
                 state.setdefault("last_link_date", "")
-                state.setdefault("act_hist", [])  # list of recent action names
+                state.setdefault("act_hist", [])  
+                state.setdefault("last_blog_date", "")
                 return state
             except Exception:
                 pass
@@ -157,6 +172,7 @@ def load_state() -> Dict[str, Any]:
         "recent_reposts": [],  # list of URIs
         "pertype": _pertype_zero(),
         "last_link_date": "",
+        "last_blog_date": "",
         "act_hist": [],
     }
 
@@ -232,6 +248,21 @@ def recently_used_media(state: Dict[str, Any], media_path: str, days: int = IMAG
             return True
     return False
 
+def can_post_blog(state: Dict[str, Any], now_local: dt.datetime) -> bool:
+    if in_time_window(now_local, "midday"):
+        return False
+
+    last = state.get("last_blog_date", "")
+    if last:
+        try:
+            last_d = dt.date.fromisoformat(last)
+            if (now_local.date() - last_d).days < BLOG_MIN_DAYS:
+                return False
+        except Exception:
+            pass
+
+    return True
+  
 # ========== FILES / IMAGES ==========
 
 def list_local_images(folder: str) -> List[str]:
@@ -450,6 +481,9 @@ def pick_link_short(state: Dict[str, Any]) -> str:
             return url
     return random.choice(LINK_POOLS)
 
+def pick_blog_post_text(state: Dict[str, Any]) -> str:
+    return pick_without_recent(state, BLOG_POST_TEXTS)
+
 # ========== WEEKLY LINK LOGIC ==========
 
 def can_post_weekly_link(state: Dict[str, Any], now_local: dt.datetime) -> bool:
@@ -496,6 +530,8 @@ def choose_action_with_caps(now_local: dt.datetime, state: Dict[str, Any]) -> st
             return "post_img_gmgn_short"
         if can_post_weekly_link(state, now_local):
             return "post_short_link"
+        if can_post_blog(state, now_local):
+            return "post_blog"
         return "repost"
 
     # Midday 11–19: **no links**; prefer repost; if image quota left, allow one image (rare)
@@ -512,6 +548,8 @@ def choose_action_with_caps(now_local: dt.datetime, state: Dict[str, Any]) -> st
             return "post_img_gmgn_short"
         if can_post_weekly_link(state, now_local):
             return "post_short_link"
+        if can_post_blog(state, now_local):
+            return "post_blog"
         return "repost"
 
     # Outside windows: default to repost
@@ -664,7 +702,12 @@ def do_one_action(client: Client, state: Dict[str, Any], tz: ZoneInfo) -> str:
                 action = "repost"
             else:
                 text = pick_link_short(state)
-
+              
+        if action == "post_blog":
+            if not can_post_blog(state, now_local):
+                action = "repost"
+            else:
+                text = pick_blog_post_text(state)
         # Si après dégradations on finit encore en repost, essayer repost une dernière fois
         if action == "repost":
             pick = pick_safe_repost(client, state, handle)
@@ -707,6 +750,8 @@ def do_one_action(client: Client, state: Dict[str, Any], tz: ZoneInfo) -> str:
             state["pertype"][action] = state.get("pertype", {}).get(action, 0) + 1
             if action == "post_short_link":
                 state["last_link_date"] = now_local.date().isoformat()
+            if action == "post_blog":
+                state["last_blog_date"] = now_local.date().isoformat()
             save_state(state)
             nap = random.uniform(DELAY_POST_MIN_S, DELAY_POST_MAX_S)
             print(f"Posted: {text[:80]}{'…' if len(text)>80 else ''} {'[+image]' if image else ''}\nSleeping ~{int(nap)}s…")
