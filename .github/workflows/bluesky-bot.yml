@@ -2,6 +2,7 @@ name: Bluesky Bot (Loufi's Art)
 
 on:
   schedule:
+  
     - cron: "32 7 * * *"   # 08:32 Brussels (winter)
     - cron: "26 11 * * *"  # 12:26 Brussels (winter)
     - cron: "15 18 * * *"  # 19:15 Brussels (winter)
