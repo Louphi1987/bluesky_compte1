@@ -9,6 +9,7 @@ Bluesky bot (Loufi’s Art / ArtLift) — Images + Reposts focused
   • Text not reused for 7 days, images for 14 days
 - Soft, random delays; hourly/daily caps; 429 backoff
 - --oneshot mode for CI (hard runtime cap < 10 min)
+adaptation
 
 Local usage:
   pip install atproto
